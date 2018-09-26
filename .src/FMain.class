@@ -1,0 +1,414 @@
+' Gambas class file
+
+' 
+' Manejador SQLite3 - Clase principal
+' 
+' Authors:
+'  J. Francisco Facundo <sos.sempai@gmail.com>
+'
+' This program is free software; you can redistribute it and/or modify it under
+' the terms of the GNU General Public License as published by the Free Software
+' Foundation; version 3.
+'
+' This program is distributed in the hope that it will be useful, but WITHOUT
+' ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+' FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+' details.
+'
+' You should have received a copy of the GNU General Public License along with
+' this program; if not, write to the Free Software Foundation, Inc.,
+' 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+Private Data_Dir As String
+Private numero_album As Integer
+Private numero_listasong As Integer
+' Private hConn As Connection
+Private dif As New String[26, 40]
+Private albuminfo As New String[9, 40]
+Private contx As Integer = 0
+Private conty As Integer = 0
+Private charFile As File
+Private idFile As File
+Private dataFile As File
+
+
+' Public Function ConectarBase() As Boolean
+'   
+'   If hConn Then Return False
+'   hConn = New Connection
+'   hConn.Host = User.Home
+'   hConn.Name = "music_db.sqlite"
+'   hConn.Type = "sqlite3"
+'   Try hConn.Open()
+'   If Error Then
+'     hConn = Null
+'     Print "Error al conectar con la bd."
+'     Return True
+'   Endif
+'   Return False
+'   
+' End
+' 
+' Public Function CerrarConexion()
+'   
+'   If hConn = Null Then Return
+'   hConn.Close()
+'   hConn = Null
+'   
+' End
+
+Public Sub buscar_carpeta(tipo As String)
+  '/////////Tipo = musica, video, karaoke
+  Dim nombre As String, verifica As Boolean, genero As String
+  Dim contador As Integer, inicio As Integer, totalalbum As Integer
+
+  'Busqueda organizada por orden alfabetico y numeros con simbolos
+  charFile = Open "/media/ramdisk/char.sql" For Write Append
+  idFile = Open "/media/ramdisk/id.sql" For Write Append
+  dataFile = Open "/media/ramdisk/data.sql" For Write Append
+  Print #charFile, "PRAGMA foreign_keys=OFF;\nBEGIN TRANSACTION;"
+  Print #dataFile, "PRAGMA foreign_keys=OFF;\nBEGIN TRANSACTION;"
+  Print #idFile, "PRAGMA foreign_keys=OFF;\nBEGIN TRANSACTION;"
+  verifica = False
+  numero_album = 1
+  FMain.Show
+  ProgressBar1.Value = 0.01
+  totalalbum = Dir(Data_Dir, "*", gb.Directory).Length
+'   ConectarBase
+  
+  For contador = 40 To 122
+    inicio = numero_album
+    For Each genero In Dir(Data_Dir, "*", gb.Directory).Sort()
+      For Each nombre In Dir(Data_Dir &/ genero, Chr$(contador) & "*", gb.Directory).Sort()
+          Label2.Caption = nombre
+          If Access(Data_Dir &/ genero &/ nombre, gb.Read) = True Then
+            buscar_archivos_se(genero, nombre, tipo, numero_album)
+            ProgressBar1.Value = Left$(CStr(numero_album / totalalbum), 4)
+            Inc contx
+            If contx > 30 Then 
+              savedata(tipo)
+              contx = 0
+              conty = 0
+            Endif
+          Endif
+          Inc numero_album
+          verifica = True
+      Next
+    Next
+    If verifica = True Then
+        Wait 0.001
+        Select Case tipo
+          Case "musica"
+            Print #charFile, "INSERT INTO " & Chr$(34) & "abc_data" & Chr$(34) & " VALUES('" & Chr(contador) & "'," & inicio & ");"
+          Case "video"
+            Print #charFile, "INSERT INTO " & Chr$(34) & "video_abc_data" & Chr$(34) & " VALUES('" & Chr(contador) & "'," & inicio & ");"
+          Case "karaoke"
+            Print #charFile, "INSERT INTO " & Chr$(34) & "karaoke_abc_data" & Chr$(34) & " VALUES('" & Chr(contador) & "'," & inicio & ");"
+        End Select
+        verifica = False
+      Endif
+    Select Case contador
+        Case 41
+          contador = 44
+        Case 45
+          contador = 47
+        Case 57
+          contador = 90
+        Case 91
+          contador = 92
+        Case 93
+          contador = 96
+      End Select
+  Next
+    
+  If contx > 0 Then
+    savedata(tipo)
+  Endif
+'   CerrarConexion
+  CommitSql
+  
+End
+
+Public Sub buscar_archivos_se(genero As String, artista_album As String, tipo As String, numero As Integer)
+  
+  Dim a1 As New String[]
+  Dim covers As New String[]
+  Dim posicion As Integer, totalsongs As Integer, contador As Integer, contador2 As Integer, contador3 As Integer
+  ' Dim rData As Result
+  covers = Dir(Data_Dir &/ genero &/ artista_album, "*.{jpg,JPG,bmp,BMP,png,PNG}")
+  Select Case tipo
+    Case "musica"
+      a1 = Dir(Data_Dir &/ genero &/ artista_album, "*.{mp3,MP3,wav,WAV,wma,WMA,ogg,OGG,m4a,M4A}").Sort()
+      ' rData = hConn.Create("mp3")
+    Case "video"
+      a1 = Dir(Data_Dir &/ artista_album, "*.{mp4,MP4,avi,AVI,mpg,MPG,mpeg,MPEG,wmv,WMV,flv,FLV,ogv,OGV,mkv,MKV}").Sort()
+      ' rData = hConn.Create("video")
+    Case "karaoke"
+      a1 = Dir(Data_Dir &/ artista_album, "*.{mp4,MP4,avi,AVI,mpg,MPG,mpeg,MPEG,wmv,WMV,flv,FLV,ogv,OGV,mkv,MKV}").Sort()
+      ' rData = hConn.Create("karaoke")
+  End Select
+  
+'   If a1.Length > 25 Then
+    ' totalsongs = 25
+'   Else
+  totalsongs = a1.Length
+'   Endif
+  contador3 = 5
+  albuminfo[5, contx] = 0
+  albuminfo[6, contx] = 0
+  albuminfo[7, contx] = 0
+  albuminfo[8, contx] = 0
+  
+  For contador2 = 0 To a1.Length Step 25
+    dif[0, conty] = numero_listasong + 1
+    If numero_album = 113 Then
+      Debug
+    Endif
+    albuminfo[0, contx] = numero_album
+    
+    For contador = 1 To a1.Length - contador2
+      If a1.Length - contador2 >= contador Then
+        'Retiramos el caracter de comilla si esta presente en el nombre
+        If InStr(a1[contador2 + contador - 1], "'") > 0 Then
+          dif[contador, conty] = Replace(a1[contador2 + contador - 1], "'", "''")
+        Else
+          dif[contador, conty] = a1[contador2 + contador - 1]
+        Endif
+      Endif
+      If contador = 25 Then 
+        contador = a1.Length
+      Endif
+    Next
+  Inc conty
+  Inc numero_listasong
+  If a1.Length = 0 Then
+    Print numero_listasong
+  Endif
+  ' If a1.Length > 0 Then
+    albuminfo[contador3, contx] = numero_listasong
+'   Endif
+  Inc contador3
+  'Si se alcanza el numero máximo de canciones por album (100 canciones), se deja de buscar.
+  If contador2 = 100 Then Break
+  Next
+  If a1.Length > 25 Then
+    Debug numero_listasong - 1
+  Endif
+  'Agrego nombre del album y el inicio como el final de la lista al indice.
+'   albuminfo[0, conty] = numero_album
+  If covers.Length = False Then
+      ' albuminfo[0, conty] = numero_album
+      If InStr(artista_album, "'") > 0 Then
+        albuminfo[1, contx] = Replace(artista_album, "'", "''")
+      Else
+        albuminfo[1, contx] = artista_album
+      Endif
+      albuminfo[2, contx] = "0"
+      albuminfo[3, contx] = totalsongs
+      albuminfo[4, contx] = genero
+  Else
+    For posicion = 0 To covers.Max
+      If posicion = 1 Then Break
+      ' albuminfo[0, contx] = numero_album
+      If InStr(artista_album, "'") > 0 Then
+        albuminfo[1, contx] = Replace(artista_album, "'", "''")
+      Else
+        albuminfo[1, contx] = artista_album
+      Endif
+      If InStr(covers[posicion], "'") > 0 Then
+        albuminfo[2, contx] = Replace(covers[posicion], "'", "''")
+      Else
+        albuminfo[2, contx] = covers[posicion]
+      Endif
+      albuminfo[3, contx] = totalsongs
+      albuminfo[4, contx] = genero
+    Next
+  Endif
+End
+
+Public Sub savedata(tipo As String)
+
+  Dim contador1 As Integer, contador2 As Integer
+  Dim valuestring As String = ""
+  
+  Select Case tipo
+    Case "musica"
+      For contador1 = 0 To conty - 1
+        For contador2 = 0 To 25
+          If dif[contador2, contador1] = "" Then
+            If contador2 = 25 Then
+              valuestring = valuestring & "NULL"
+            Else
+              valuestring = valuestring & "NULL,"
+            Endif
+          Else
+            If contador2 = 25 Then
+              valuestring = valuestring & "'" & dif[contador2, contador1] & "'" 
+            Else
+              If contador2 > 0 And contador2 Then
+                valuestring = valuestring & "'" & dif[contador2, contador1] & "',"
+              Else
+                valuestring = dif[contador2, contador1] & ","
+              Endif
+            Endif
+          Endif
+        Next
+        Print #dataFile, "INSERT INTO " & Chr$(34) & "mp3" & Chr$(34) & " VALUES(" & valuestring & ");"
+      Next
+      valuestring = ""
+      For contador1 = 0 To contx - 1
+        For contador2 = 0 To 8
+          If contador2 = 8 Then
+            valuestring = valuestring & albuminfo[contador2, contador1] 
+          Else
+            If contador2 > 0 And contador2 Then
+              valuestring = valuestring & "'" & albuminfo[contador2, contador1] & "',"
+            Else
+              valuestring = albuminfo[contador2, contador1] & ","
+            Endif
+          Endif
+        Next
+        Print #idFile, "INSERT INTO " & Chr$(34) & "album_id" & Chr$(34) & " VALUES(" & valuestring & ");"
+      Next
+    Case "video"
+      For contador1 = 0 To contx - 1
+        For contador2 = 0 To 25
+          If dif[contador2, contador1] = "" Then
+            If contador2 = 25 Then
+              valuestring = valuestring & "NULL"
+            Else
+              valuestring = valuestring & "NULL,"
+            Endif
+          Else
+            If contador2 = 25 Then
+              valuestring = valuestring & "'" & dif[contador2, contador1] & "'" 
+            Else
+              If contador2 > 0 And contador2 Then
+                valuestring = valuestring & "'" & dif[contador2, contador1] & "',"
+              Else
+                valuestring = dif[contador2, contador1] & ","
+              Endif
+            Endif
+          Endif
+        Next
+        Print #dataFile, "INSERT INTO " & Chr$(34) & "video" & Chr$(34) & " VALUES(" & valuestring & ");"
+      Next
+      valuestring = ""
+      For contador1 = 0 To contx - 1
+        For contador2 = 0 To 3
+          If contador2 = 3 Then
+            valuestring = valuestring & albuminfo[contador2, contador1] 
+          Else
+            If contador2 > 0 And contador2 Then
+              valuestring = valuestring & "'" & albuminfo[contador2, contador1] & "',"
+            Else
+              valuestring = albuminfo[contador2, contador1] & ","
+            Endif
+          Endif
+        Next
+        Print #idFile, "INSERT INTO " & Chr$(34) & "video_album_id" & Chr$(34) & " VALUES(" & valuestring & ");"
+      Next
+    Case "karaoke"
+      For contador1 = 0 To contx - 1
+        For contador2 = 0 To 25
+          If dif[contador2, contador1] = "" Then
+            If contador2 = 25 Then
+              valuestring = valuestring & "NULL"
+            Else
+              valuestring = valuestring & "NULL,"
+            Endif
+          Else
+            If contador2 = 25 Then
+              valuestring = valuestring & "'" & dif[contador2, contador1] & "'" 
+            Else
+              If contador2 > 0 And contador2 Then
+                valuestring = valuestring & "'" & dif[contador2, contador1] & "',"
+              Else
+                valuestring = dif[contador2, contador1] & ","
+              Endif
+            Endif
+          Endif
+        Next
+        Print #dataFile, "INSERT INTO " & Chr$(34) & "karaoke" & Chr$(34) & " VALUES(" & valuestring & ");"
+      Next
+      valuestring = ""
+      For contador1 = 0 To contx - 1
+        For contador2 = 0 To 3
+          If contador2 = 3 Then
+            valuestring = valuestring & albuminfo[contador2, contador1] 
+          Else
+            If contador2 > 0 And contador2 Then
+              valuestring = valuestring & "'" & albuminfo[contador2, contador1] & "',"
+            Else
+              valuestring = albuminfo[contador2, contador1] & ","
+            Endif
+          Endif
+        Next
+        Print #idFile, "INSERT INTO " & Chr$(34) & "karaoke_album_id" & Chr$(34) & " VALUES(" & valuestring & ");"
+      Next
+  End Select
+  
+  dif.Clear
+  albuminfo.Clear
+End
+
+Public Sub Form_Open()
+  
+  Me.Center
+
+End
+
+Public Sub CommitSql()
+  
+  Print #charFile, "COMMIT;"
+  Print #dataFile, "COMMIT;"
+  Print #idFile, "COMMIT;"
+  charFile.Close
+  idFile.Close
+  dataFile.Close
+  ' Shell "sqlite3 /media/usb/music_db.sqlite < /media/ramdisk/char.sql" Wait
+  ' Shell "sqlite3 /media/usb/music_db.sqlite < /media/ramdisk/id.sql" Wait
+  ' Shell "sqlite3 /media/usb/music_db.sqlite < /media/ramdisk/data.sql" Wait
+  Shell "sqlite3 " & User.Home &/ "music_db.sqlite < /media/ramdisk/char.sql" Wait
+  Shell "sqlite3 " & User.Home &/ "music_db.sqlite < /media/ramdisk/id.sql" Wait
+  Shell "sqlite3 " & User.Home &/ "music_db.sqlite < /media/ramdisk/data.sql" Wait
+  Kill "/media/ramdisk/char.sql"
+  Kill "/media/ramdisk/id.sql"
+  Kill "/media/ramdisk/data.sql"
+  
+End
+
+Public Sub StartCounter_Timer()
+
+  Dim hSettings As Settings
+  hSettings = New Settings(User.Home & "/.skmjukebox.conf")
+  StartCounter.Stop
+  
+  If Not Exist(User.Home &/ "music_db.sqlite") Then Quit
+  
+  Select Case Application.Args[1]
+  Case "-musica"
+    Data_Dir = hSettings["Config/Music_dir", User.Home &/ "/Música/"]
+    If Exist(Data_Dir) Then
+      buscar_carpeta("musica")
+    Else
+      Message.Warning(" ¡Error en " & Data_Dir & " No existe el directorio!.", "Aceptar")
+    Endif
+  Case "-video"
+    Data_Dir = hSettings["Config/Video_dir", User.Home &/ "/Vídeos/"]
+    If Exist(Data_Dir) Then 
+    buscar_carpeta("video")
+    Else
+      Message.Warning(" ¡Error en " & Data_Dir & " No existe el directorio!.", "Aceptar")
+    Endif
+  Case "-karaoke"
+    Data_Dir = hSettings["Config/Karaoke_dir", User.Home &/ "/Karaokes/"]
+    If Exist(Data_Dir) Then 
+    buscar_carpeta("karaoke")
+    Else
+      Message.Warning(" ¡Error en " & Data_Dir & " No existe el directorio!. ", " Aceptar ")
+    Endif
+  End Select
+  Quit
+
+End

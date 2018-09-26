@@ -1,0 +1,24 @@
+# Gambas Form File 3.0
+
+{ Form Form
+  MoveScaled(0,0,65,27)
+  Icon = Picture["resource/icon.png"]
+  Resizable = False
+  { ProgressBar1 ProgressBar
+    MoveScaled(3,18,59,5)
+  }
+  { Label1 Label
+    MoveScaled(12,6,40,4)
+    Font = Font["Bold,16"]
+    Text = ("Por favor espere")
+    Alignment = Align.Center
+  }
+  { Label2 Label
+    MoveScaled(3,14,59,4)
+  }
+  { StartCounter #Timer
+    #MoveScaled(0,1)
+    Enabled = True
+    Delay = 500
+  }
+}

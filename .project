@@ -1,0 +1,18 @@
+# Gambas Project File 3.0
+Title=SKm Database Manager
+Startup=FMain
+Icon=resource/icon.png
+Version=0.0.33
+Component=gb.image
+Component=gb.qt4
+Component=gb.db
+Component=gb.db.sqlite3
+Component=gb.settings
+Description="SKm Jukebox Database Manager"
+Authors="José Francisco Facundo <sos.sempai@gmail.com>"
+Arguments=[["-karaoke"],["-musica"],["-video"]]
+CurrentArgument=1
+TabSize=2
+Language=es
+KeepDebugInfo=0
+Packager=1
