@@ -229,124 +229,53 @@ End
 Public Sub savedata(tipo As String)
 
   Dim contador1 As Integer, contador2 As Integer
-  Dim valuestring As String = ""
+  Dim valuestring As String = "", data_type, data_id As String
   
-  Select Case tipo
-    Case "musica"
-      For contador1 = 0 To conty - 1
-        For contador2 = 0 To 25
-          If dif[contador2, contador1] = "" Then
-            If contador2 = 25 Then
-              valuestring = valuestring & "NULL"
-            Else
-              valuestring = valuestring & "NULL,"
-            Endif
+  If tipo = "musica" Then
+    data_type = "mp3"
+    data_id = "album_id"
+  Else
+    data_type = tipo
+    data_id = tipo & "_album_id"
+  Endif
+  
+  For contador1 = 0 To conty - 1
+    For contador2 = 0 To 25
+      If dif[contador2, contador1] = "" Then
+        If contador2 = 25 Then
+          valuestring = valuestring & "NULL"
+        Else
+          valuestring = valuestring & "NULL,"
+        Endif
+      Else
+        If contador2 = 25 Then
+          valuestring = valuestring & "'" & dif[contador2, contador1] & "'" 
+        Else
+          If contador2 > 0 And contador2 Then
+            valuestring = valuestring & "'" & dif[contador2, contador1] & "',"
           Else
-            If contador2 = 25 Then
-              valuestring = valuestring & "'" & dif[contador2, contador1] & "'" 
-            Else
-              If contador2 > 0 And contador2 Then
-                valuestring = valuestring & "'" & dif[contador2, contador1] & "',"
-              Else
-                valuestring = dif[contador2, contador1] & ","
-              Endif
-            Endif
+            valuestring = dif[contador2, contador1] & ","
           Endif
-        Next
-        Print #dataFile, "INSERT INTO " & Chr$(34) & "mp3" & Chr$(34) & " VALUES(" & valuestring & ");"
-      Next
-      valuestring = ""
-      For contador1 = 0 To contx - 1
-        For contador2 = 0 To 8
-          If contador2 = 8 Then
-            valuestring = valuestring & albuminfo[contador2, contador1] 
-          Else
-            If contador2 > 0 And contador2 Then
-              valuestring = valuestring & "'" & albuminfo[contador2, contador1] & "',"
-            Else
-              valuestring = albuminfo[contador2, contador1] & ","
-            Endif
-          Endif
-        Next
-        Print #idFile, "INSERT INTO " & Chr$(34) & "album_id" & Chr$(34) & " VALUES(" & valuestring & ");"
-      Next
-    Case "video"
-      For contador1 = 0 To contx - 1
-        For contador2 = 0 To 25
-          If dif[contador2, contador1] = "" Then
-            If contador2 = 25 Then
-              valuestring = valuestring & "NULL"
-            Else
-              valuestring = valuestring & "NULL,"
-            Endif
-          Else
-            If contador2 = 25 Then
-              valuestring = valuestring & "'" & dif[contador2, contador1] & "'" 
-            Else
-              If contador2 > 0 And contador2 Then
-                valuestring = valuestring & "'" & dif[contador2, contador1] & "',"
-              Else
-                valuestring = dif[contador2, contador1] & ","
-              Endif
-            Endif
-          Endif
-        Next
-        Print #dataFile, "INSERT INTO " & Chr$(34) & "video" & Chr$(34) & " VALUES(" & valuestring & ");"
-      Next
-      valuestring = ""
-      For contador1 = 0 To contx - 1
-        For contador2 = 0 To 3
-          If contador2 = 3 Then
-            valuestring = valuestring & albuminfo[contador2, contador1] 
-          Else
-            If contador2 > 0 And contador2 Then
-              valuestring = valuestring & "'" & albuminfo[contador2, contador1] & "',"
-            Else
-              valuestring = albuminfo[contador2, contador1] & ","
-            Endif
-          Endif
-        Next
-        Print #idFile, "INSERT INTO " & Chr$(34) & "video_album_id" & Chr$(34) & " VALUES(" & valuestring & ");"
-      Next
-    Case "karaoke"
-      For contador1 = 0 To contx - 1
-        For contador2 = 0 To 25
-          If dif[contador2, contador1] = "" Then
-            If contador2 = 25 Then
-              valuestring = valuestring & "NULL"
-            Else
-              valuestring = valuestring & "NULL,"
-            Endif
-          Else
-            If contador2 = 25 Then
-              valuestring = valuestring & "'" & dif[contador2, contador1] & "'" 
-            Else
-              If contador2 > 0 And contador2 Then
-                valuestring = valuestring & "'" & dif[contador2, contador1] & "',"
-              Else
-                valuestring = dif[contador2, contador1] & ","
-              Endif
-            Endif
-          Endif
-        Next
-        Print #dataFile, "INSERT INTO " & Chr$(34) & "karaoke" & Chr$(34) & " VALUES(" & valuestring & ");"
-      Next
-      valuestring = ""
-      For contador1 = 0 To contx - 1
-        For contador2 = 0 To 3
-          If contador2 = 3 Then
-            valuestring = valuestring & albuminfo[contador2, contador1] 
-          Else
-            If contador2 > 0 And contador2 Then
-              valuestring = valuestring & "'" & albuminfo[contador2, contador1] & "',"
-            Else
-              valuestring = albuminfo[contador2, contador1] & ","
-            Endif
-          Endif
-        Next
-        Print #idFile, "INSERT INTO " & Chr$(34) & "karaoke_album_id" & Chr$(34) & " VALUES(" & valuestring & ");"
-      Next
-  End Select
+        Endif
+      Endif
+    Next
+    Print #dataFile, "INSERT INTO " & Chr$(34) & data_type & Chr$(34) & " VALUES(" & valuestring & ");"
+  Next
+  valuestring = ""
+  For contador1 = 0 To contx - 1
+    For contador2 = 0 To 8
+      If contador2 = 8 Then
+        valuestring = valuestring & albuminfo[contador2, contador1] 
+      Else
+        If contador2 > 0 And contador2 Then
+          valuestring = valuestring & "'" & albuminfo[contador2, contador1] & "',"
+        Else
+          valuestring = albuminfo[contador2, contador1] & ","
+        Endif
+      Endif
+    Next
+    Print #idFile, "INSERT INTO " & Chr$(34) & data_id & Chr$(34) & " VALUES(" & valuestring & ");"
+  Next
   
   dif.Clear
   albuminfo.Clear
@@ -380,8 +309,9 @@ End
 
 Public Sub StartCounter_Timer()
 
-  Dim hSettings As Settings
+  Dim hSettings As Settings, MessageText As String
   hSettings = New Settings(User.Home & "/.skmjukebox.conf")
+  MessageText = " ¡Error en " & Data_Dir & " No existe el directorio!."
   StartCounter.Stop
   
   If Not Exist(User.Home &/ "music_db.sqlite") Then Quit
@@ -392,21 +322,21 @@ Public Sub StartCounter_Timer()
     If Exist(Data_Dir) Then
       buscar_carpeta("musica")
     Else
-      Message.Warning(" ¡Error en " & Data_Dir & " No existe el directorio!.", "Aceptar")
+      Message.Warning(MessageText, "Aceptar")
     Endif
   Case "-video"
     Data_Dir = hSettings["Config/Video_dir", User.Home &/ "/Vídeos/"]
     If Exist(Data_Dir) Then 
     buscar_carpeta("video")
     Else
-      Message.Warning(" ¡Error en " & Data_Dir & " No existe el directorio!.", "Aceptar")
+      Message.Warning(MessageText, "Aceptar")
     Endif
   Case "-karaoke"
     Data_Dir = hSettings["Config/Karaoke_dir", User.Home &/ "/Karaokes/"]
     If Exist(Data_Dir) Then 
     buscar_carpeta("karaoke")
     Else
-      Message.Warning(" ¡Error en " & Data_Dir & " No existe el directorio!. ", " Aceptar ")
+      Message.Warning(MessageText, "Aceptar")
     Endif
   End Select
   Quit
