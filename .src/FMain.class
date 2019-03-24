@@ -22,7 +22,7 @@
 Private Data_Dir As String
 Private numero_album As Integer
 Private numero_listasong As Integer
-' Private hConn As Connection
+Private hConn As Connection
 Private dif As New String[26, 40]
 Private albuminfo As New String[9, 40]
 Private contx As Integer = 0
@@ -32,30 +32,33 @@ Private idFile As File
 Private dataFile As File
 
 
-' Public Function ConectarBase() As Boolean
-'   
-'   If hConn Then Return False
-'   hConn = New Connection
-'   hConn.Host = User.Home
-'   hConn.Name = "music_db.sqlite"
-'   hConn.Type = "sqlite3"
-'   Try hConn.Open()
-'   If Error Then
-'     hConn = Null
-'     Print "Error al conectar con la bd."
-'     Return True
-'   Endif
-'   Return False
-'   
-' End
-' 
-' Public Function CerrarConexion()
-'   
-'   If hConn = Null Then Return
-'   hConn.Close()
-'   hConn = Null
-'   
-' End
+Public Function ConectarBase() As Boolean
+  
+  If hConn Then Return False
+  hConn = New Connection
+  With hConn
+    .Host = User.Home
+    .Name = "music_db.sqlite"
+    .Type = "sqlite3"
+  End With
+  
+  Try hConn.Open()
+  If Error Then
+    hConn = Null
+    Print "Error al conectar con la bd."
+    Return True
+  Endif
+  Return False
+  
+End
+
+Public Function CerrarConexion()
+  
+  If hConn = Null Then Return
+  hConn.Close()
+  hConn = Null
+  
+End
 
 Public Sub buscar_carpeta(tipo As String)
   '/////////Tipo = musica, video, karaoke
@@ -74,7 +77,6 @@ Public Sub buscar_carpeta(tipo As String)
   FMain.Show
   ProgressBar1.Value = 0.01
   totalalbum = Dir(Data_Dir, "*", gb.Directory).Length
-'   ConectarBase
   
   For contador = 40 To 122
     inicio = numero_album
@@ -96,17 +98,18 @@ Public Sub buscar_carpeta(tipo As String)
       Next
     Next
     If verifica = True Then
-        Wait 0.001
-        Select Case tipo
-          Case "musica"
-            Print #charFile, "INSERT INTO " & Chr$(34) & "abc_data" & Chr$(34) & " VALUES('" & Chr(contador) & "'," & inicio & ");"
-          Case "video"
-            Print #charFile, "INSERT INTO " & Chr$(34) & "video_abc_data" & Chr$(34) & " VALUES('" & Chr(contador) & "'," & inicio & ");"
-          Case "karaoke"
-            Print #charFile, "INSERT INTO " & Chr$(34) & "karaoke_abc_data" & Chr$(34) & " VALUES('" & Chr(contador) & "'," & inicio & ");"
-        End Select
-        verifica = False
-      Endif
+      'Redibuja la pantalla
+      Wait 0.001
+      Select Case tipo
+        Case "musica"
+          Print #charFile, "INSERT INTO " & Chr$(34) & "abc_data" & Chr$(34) & " VALUES('" & Chr(contador) & "'," & inicio & ");"
+        Case "video"
+          Print #charFile, "INSERT INTO " & Chr$(34) & "video_abc_data" & Chr$(34) & " VALUES('" & Chr(contador) & "'," & inicio & ");"
+        Case "karaoke"
+          Print #charFile, "INSERT INTO " & Chr$(34) & "karaoke_abc_data" & Chr$(34) & " VALUES('" & Chr(contador) & "'," & inicio & ");"
+      End Select
+      verifica = False
+    Endif
     Select Case contador
         Case 41
           contador = 44
@@ -124,7 +127,6 @@ Public Sub buscar_carpeta(tipo As String)
   If contx > 0 Then
     savedata(tipo)
   Endif
-'   CerrarConexion
   CommitSql
   
 End
@@ -139,20 +141,14 @@ Public Sub buscar_archivos_se(genero As String, artista_album As String, tipo As
   Select Case tipo
     Case "musica"
       a1 = Dir(Data_Dir &/ genero &/ artista_album, "*.{mp3,MP3,wav,WAV,wma,WMA,ogg,OGG,m4a,M4A}").Sort()
-      ' rData = hConn.Create("mp3")
     Case "video"
       a1 = Dir(Data_Dir &/ artista_album, "*.{mp4,MP4,avi,AVI,mpg,MPG,mpeg,MPEG,wmv,WMV,flv,FLV,ogv,OGV,mkv,MKV}").Sort()
-      ' rData = hConn.Create("video")
     Case "karaoke"
       a1 = Dir(Data_Dir &/ artista_album, "*.{mp4,MP4,avi,AVI,mpg,MPG,mpeg,MPEG,wmv,WMV,flv,FLV,ogv,OGV,mkv,MKV}").Sort()
-      ' rData = hConn.Create("karaoke")
   End Select
   
-'   If a1.Length > 25 Then
-    ' totalsongs = 25
-'   Else
   totalsongs = a1.Length
-'   Endif
+  
   contador3 = 5
   albuminfo[5, contx] = 0
   albuminfo[6, contx] = 0
@@ -184,9 +180,7 @@ Public Sub buscar_archivos_se(genero As String, artista_album As String, tipo As
   If a1.Length = 0 Then
     Print numero_listasong
   Endif
-  ' If a1.Length > 0 Then
     albuminfo[contador3, contx] = numero_listasong
-'   Endif
   Inc contador3
   'Si se alcanza el numero máximo de canciones por album (100 canciones), se deja de buscar.
   If contador2 = 100 Then Break
@@ -195,9 +189,7 @@ Public Sub buscar_archivos_se(genero As String, artista_album As String, tipo As
     Debug numero_listasong - 1
   Endif
   'Agrego nombre del album y el inicio como el final de la lista al indice.
-'   albuminfo[0, conty] = numero_album
   If covers.Length = False Then
-      ' albuminfo[0, conty] = numero_album
       If InStr(artista_album, "'") > 0 Then
         albuminfo[1, contx] = Replace(artista_album, "'", "''")
       Else
@@ -209,7 +201,6 @@ Public Sub buscar_archivos_se(genero As String, artista_album As String, tipo As
   Else
     For posicion = 0 To covers.Max
       If posicion = 1 Then Break
-      ' albuminfo[0, contx] = numero_album
       If InStr(artista_album, "'") > 0 Then
         albuminfo[1, contx] = Replace(artista_album, "'", "''")
       Else
@@ -309,35 +300,37 @@ End
 
 Public Sub StartCounter_Timer()
 
-  Dim hSettings As Settings, MessageText As String
-  hSettings = New Settings(User.Home & "/.skmjukebox.conf")
+  Dim MessageText As String, hResult As Result
+  If Not Exist(User.Home &/ "music_db.sqlite") Then Quit
   MessageText = " ¡Error en " & Data_Dir & " No existe el directorio!."
+  ConectarBase
   StartCounter.Stop
   
-  If Not Exist(User.Home &/ "music_db.sqlite") Then Quit
-  
-  Select Case Application.Args[1]
-  Case "-musica"
-    Data_Dir = hSettings["Config/Music_dir", User.Home &/ "/Música/"]
-    If Exist(Data_Dir) Then
-      buscar_carpeta("musica")
-    Else
-      Message.Warning(MessageText, "Aceptar")
-    Endif
-  Case "-video"
-    Data_Dir = hSettings["Config/Video_dir", User.Home &/ "/Vídeos/"]
-    If Exist(Data_Dir) Then 
-    buscar_carpeta("video")
-    Else
-      Message.Warning(MessageText, "Aceptar")
-    Endif
-  Case "-karaoke"
-    Data_Dir = hSettings["Config/Karaoke_dir", User.Home &/ "/Karaokes/"]
-    If Exist(Data_Dir) Then 
-    buscar_carpeta("karaoke")
-    Else
-      Message.Warning(MessageText, "Aceptar")
-    Endif
+  Select Application.Args[1]
+    Case "-musica"
+      hResult = hConn.Exec("select MusicDir from config_data where id=1")
+      Data_Dir = hResult["MusicDir"]
+      If Exist(Data_Dir) Then
+        buscar_carpeta("musica")
+      Else
+        Message.Warning(MessageText, "Aceptar")
+      Endif
+    Case "-video"
+      hResult = hConn.Exec("select VideoDir from config_data where id=1")
+      Data_Dir = hResult["VideoDir"]
+      If Exist(Data_Dir) Then
+        buscar_carpeta("video")
+      Else
+        Message.Warning(MessageText, "Aceptar")
+      Endif
+    Case "-karaoke"
+      hResult = hConn.Exec("select KaraokeDir from config_data where id=1")
+      Data_Dir = hResult["KaraokeDir"]
+      If Exist(Data_Dir) Then
+        buscar_carpeta("karaoke")
+      Else
+        Message.Warning(MessageText, "Aceptar")
+      Endif
   End Select
   Quit
 
