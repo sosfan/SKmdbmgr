@@ -2,10 +2,10 @@ FMain
 SKm Database Manager
 0
 0
-0.0.33
+0.0.36
 
 gb.image
-gb.qt4
+gb.gui.qt
 gb.db
 gb.db.sqlite3
 gb.settings

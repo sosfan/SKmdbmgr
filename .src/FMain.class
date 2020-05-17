@@ -24,7 +24,7 @@ Private numero_album As Integer
 Private numero_listasong As Integer
 Private hConn As Connection
 Private dif As New String[26, 40]
-Private albuminfo As New String[9, 40]
+Private albuminfo As New String[11, 40]
 Private contx As Integer = 0
 Private conty As Integer = 0
 Private charFile As File
@@ -66,9 +66,9 @@ Public Sub buscar_carpeta(tipo As String)
   Dim contador As Integer, inicio As Integer, totalalbum As Integer
 
   'Busqueda organizada por orden alfabetico y numeros con simbolos
-  charFile = Open "/media/ramdisk/char.sql" For Write Append
-  idFile = Open "/media/ramdisk/id.sql" For Write Append
-  dataFile = Open "/media/ramdisk/data.sql" For Write Append
+  charFile = Open "/tmp/char.sql" For Write Append
+  idFile = Open "/tmp/id.sql" For Write Append
+  dataFile = Open "/tmp/data.sql" For Write Append
   Print #charFile, "PRAGMA foreign_keys=OFF;\nBEGIN TRANSACTION;"
   Print #dataFile, "PRAGMA foreign_keys=OFF;\nBEGIN TRANSACTION;"
   Print #idFile, "PRAGMA foreign_keys=OFF;\nBEGIN TRANSACTION;"
@@ -84,7 +84,7 @@ Public Sub buscar_carpeta(tipo As String)
       For Each nombre In Dir(Data_Dir &/ genero, Chr$(contador) & "*", gb.Directory).Sort()
           Label2.Caption = nombre
           If Access(Data_Dir &/ genero &/ nombre, gb.Read) = True Then
-            buscar_archivos_se(genero, nombre, tipo, numero_album)
+            buscar_archivos_se(genero, Format(Stat(Data_Dir &/ genero &/ nombre).LastModified, "dd-mm-yyyy"), nombre, tipo, numero_album)
             ProgressBar1.Value = Left$(CStr(numero_album / totalalbum), 4)
             Inc contx
             If contx > 30 Then 
@@ -131,7 +131,7 @@ Public Sub buscar_carpeta(tipo As String)
   
 End
 
-Public Sub buscar_archivos_se(genero As String, artista_album As String, tipo As String, numero As Integer)
+Public Sub buscar_archivos_se(genero As String, fecha As String, artista_album As String, tipo As String, numero As Integer)
   
   Dim a1 As New String[]
   Dim covers As New String[]
@@ -142,18 +142,18 @@ Public Sub buscar_archivos_se(genero As String, artista_album As String, tipo As
     Case "musica"
       a1 = Dir(Data_Dir &/ genero &/ artista_album, "*.{mp3,MP3,wav,WAV,wma,WMA,ogg,OGG,m4a,M4A}").Sort()
     Case "video"
-      a1 = Dir(Data_Dir &/ artista_album, "*.{mp4,MP4,avi,AVI,mpg,MPG,mpeg,MPEG,wmv,WMV,flv,FLV,ogv,OGV,mkv,MKV}").Sort()
+      a1 = Dir(Data_Dir &/ genero &/ artista_album, "*.{mp4,MP4,avi,AVI,mpg,MPG,mpeg,MPEG,wmv,WMV,flv,FLV,ogv,OGV,mkv,MKV}").Sort()
     Case "karaoke"
-      a1 = Dir(Data_Dir &/ artista_album, "*.{mp4,MP4,avi,AVI,mpg,MPG,mpeg,MPEG,wmv,WMV,flv,FLV,ogv,OGV,mkv,MKV}").Sort()
+      a1 = Dir(Data_Dir &/ genero &/ artista_album, "*.{cdg,CDG,mp4,MP4,avi,AVI,mpg,MPG,mpeg,MPEG,wmv,WMV,flv,FLV,ogv,OGV,mkv,MKV}").Sort()
   End Select
   
   totalsongs = a1.Length
   
-  contador3 = 5
-  albuminfo[5, contx] = 0
-  albuminfo[6, contx] = 0
+  contador3 = 7
   albuminfo[7, contx] = 0
   albuminfo[8, contx] = 0
+  albuminfo[9, contx] = 0
+  albuminfo[10, contx] = 0
   
   For contador2 = 0 To a1.Length Step 25
     dif[0, conty] = numero_listasong + 1
@@ -198,6 +198,8 @@ Public Sub buscar_archivos_se(genero As String, artista_album As String, tipo As
       albuminfo[2, contx] = "0"
       albuminfo[3, contx] = totalsongs
       albuminfo[4, contx] = genero
+      albuminfo[5, contx] = fecha
+      albuminfo[6, contx] = tipo
   Else
     For posicion = 0 To covers.Max
       If posicion = 1 Then Break
@@ -213,6 +215,8 @@ Public Sub buscar_archivos_se(genero As String, artista_album As String, tipo As
       Endif
       albuminfo[3, contx] = totalsongs
       albuminfo[4, contx] = genero
+      albuminfo[5, contx] = fecha
+      albuminfo[6, contx] = tipo
     Next
   Endif
 End
@@ -252,10 +256,11 @@ Public Sub savedata(tipo As String)
     Next
     Print #dataFile, "INSERT INTO " & Chr$(34) & data_type & Chr$(34) & " VALUES(" & valuestring & ");"
   Next
+  
   valuestring = ""
   For contador1 = 0 To contx - 1
-    For contador2 = 0 To 8
-      If contador2 = 8 Then
+    For contador2 = 0 To 10
+      If contador2 = 10 Then
         valuestring = valuestring & albuminfo[contador2, contador1] 
       Else
         If contador2 > 0 And contador2 Then
@@ -286,15 +291,15 @@ Public Sub CommitSql()
   charFile.Close
   idFile.Close
   dataFile.Close
-  ' Shell "sqlite3 /media/usb/music_db.sqlite < /media/ramdisk/char.sql" Wait
-  ' Shell "sqlite3 /media/usb/music_db.sqlite < /media/ramdisk/id.sql" Wait
-  ' Shell "sqlite3 /media/usb/music_db.sqlite < /media/ramdisk/data.sql" Wait
-  Shell "sqlite3 " & User.Home &/ "music_db.sqlite < /media/ramdisk/char.sql" Wait
-  Shell "sqlite3 " & User.Home &/ "music_db.sqlite < /media/ramdisk/id.sql" Wait
-  Shell "sqlite3 " & User.Home &/ "music_db.sqlite < /media/ramdisk/data.sql" Wait
-  Kill "/media/ramdisk/char.sql"
-  Kill "/media/ramdisk/id.sql"
-  Kill "/media/ramdisk/data.sql"
+  ' Shell "sqlite3 /media/usb/music_db.sqlite < /tmp/char.sql" Wait
+  ' Shell "sqlite3 /media/usb/music_db.sqlite < /tmp/id.sql" Wait
+  ' Shell "sqlite3 /media/usb/music_db.sqlite < /tmp/data.sql" Wait
+  Shell "sqlite3 " & User.Home &/ "music_db.sqlite < /tmp/char.sql" Wait
+  Shell "sqlite3 " & User.Home &/ "music_db.sqlite < /tmp/id.sql" Wait
+  Shell "sqlite3 " & User.Home &/ "music_db.sqlite < /tmp/data.sql" Wait
+  Kill "/tmp/char.sql"
+  Kill "/tmp/id.sql"
+  Kill "/tmp/data.sql"
   
 End
 
